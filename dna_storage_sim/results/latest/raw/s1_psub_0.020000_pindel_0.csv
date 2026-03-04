@@ -1,0 +1,2 @@
+scheme,dataset,size_bytes,trial,p_sub,p_ins,p_del,replication,success,byte_accuracy,chunk_recovery,recovered_bytes,expected_chunks,recovered_chunks,total_bases,effective_bits_per_base,overhead,input_sha256,output_sha256,failures
+s1,random,1048576,0,0.02,0.01,0.01,1,0,0.0,0.0,0,1024,0,4296704,0.0,1.0244140625,4b1af51985fea8c2b36bc31d2d2061084b9fab31814d03b018329188dd857b7c,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,1024

@@ -1,0 +1,76 @@
+{
+  "experiment": {
+    "schemes": [
+      "s1",
+      "s2",
+      "s3"
+    ],
+    "dataset": "random",
+    "size_mb": 0.009765625,
+    "trials_per_cell": 20,
+    "base_seed": 12345,
+    "two_stage_channel": true,
+    "n_workers": 12
+  },
+  "scheme_params": {
+    "chunk_data_bytes": 256,
+    "marker": "ACGTACGTAC",
+    "marker_period": 40,
+    "max_marker_edit_distance": 2,
+    "rs_parity_bytes": 64,
+    "replication": 5,
+    "gc_target": 0.5
+  },
+  "channel": {
+    "synthesis": {
+      "p_sub": 0.0,
+      "p_del": 0.0,
+      "p_ins": 0.0,
+      "gc_ins_bias": 0.0,
+      "gc_sub_bias": 0.0,
+      "homopolymer_threshold": 4,
+      "homopolymer_del_multiplier": 3.0
+    },
+    "sequencing": {
+      "p_sub": 0.0,
+      "p_del": 0.0,
+      "p_ins": 0.0,
+      "gc_ins_bias": 0.0,
+      "gc_sub_bias": 0.0,
+      "homopolymer_threshold": 4,
+      "homopolymer_del_multiplier": 3.0
+    },
+    "enabled": true
+  },
+  "grid": {
+    "p_sub_list": [
+      0.0,
+      0.0002,
+      0.0005,
+      0.001,
+      0.002
+    ],
+    "p_indel_list": [
+      0.0,
+      0.0001,
+      0.0002,
+      0.0005,
+      0.001,
+      0.002,
+      0.003,
+      0.005
+    ],
+    "replication_list": [
+      1,
+      2,
+      3,
+      5
+    ]
+  },
+  "output": {
+    "out_dir": "results",
+    "run_id": "final_c_10kb_c256_t20",
+    "save_raw_parquet": true
+  }
+}
+

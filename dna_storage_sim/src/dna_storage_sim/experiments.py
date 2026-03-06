@@ -85,14 +85,23 @@ def _save_df(df: pd.DataFrame, path_no_ext: Path, prefer_parquet: bool) -> Path:
     path_no_ext.parent.mkdir(parents=True, exist_ok=True)
     if prefer_parquet:
         try:
-            p = path_no_ext.with_suffix(".parquet")
+            p = path_no_ext.parent / f"{path_no_ext.name}.parquet"
             df.to_parquet(p, index=False)
             return p
         except Exception:
             pass
-    p = path_no_ext.with_suffix(".csv")
+    p = path_no_ext.parent / f"{path_no_ext.name}.csv"
     df.to_csv(p, index=False)
     return p
+
+
+def _count_scheme_cell_files(raw_dir: Path, scheme: str) -> int:
+    keys: set[str] = set()
+    for p in raw_dir.glob(f"{scheme}_psub_*_pindel_*.csv"):
+        keys.add(p.stem)
+    for p in raw_dir.glob(f"{scheme}_psub_*_pindel_*.parquet"):
+        keys.add(p.stem)
+    return len(keys)
 
 
 def _resolve_n_workers(requested: int, total_cells: int) -> int:
@@ -242,6 +251,7 @@ def run_grid(run_spec: RunSpec) -> Path:
     cell_pbar = tqdm(total=total_cells, desc="grid-cells", position=0)
 
     for scheme in schemes:
+        expected_scheme_cells = len(run_spec.grid.p_sub_list) * len(run_spec.grid.p_indel_list)
         codec = _codec_for_scheme(scheme, run_spec)
         encoded = codec.encode_file(dataset)
         expected_chunks = max((s.chunk_id for s in encoded), default=-1) + 1
@@ -286,19 +296,48 @@ def run_grid(run_spec: RunSpec) -> Path:
                     ): (p_sub, p_indel)
                     for p_sub, p_indel in cells_to_run
                 }
-                for future in concurrent.futures.as_completed(future_to_cell):
-                    p_sub, p_indel = future_to_cell[future]
-                    cell_key = f"{scheme}_psub_{p_sub:.6f}_pindel_{p_indel:.6f}"
-                    cell_trial_rows, cell_seed_rows = future.result()
-                    trial_rows.extend(cell_trial_rows)
-                    seed_rows.extend(cell_seed_rows)
-                    _save_df(
-                        pd.DataFrame(cell_trial_rows),
-                        raw_dir / cell_key,
-                        run_spec.output.save_raw_parquet,
+                pending = set(future_to_cell.keys())
+                last_heartbeat = time.perf_counter()
+                last_done_cell: tuple[float, float] | None = None
+                while pending:
+                    done, pending = concurrent.futures.wait(
+                        pending,
+                        timeout=10.0,
+                        return_when=concurrent.futures.FIRST_COMPLETED,
                     )
-                    cell_pbar.update(1)
-                    cell_pbar.set_postfix_str(f"{scheme} p_sub={p_sub:.4f} p_indel={p_indel:.4f}")
+                    if not done:
+                        now = time.perf_counter()
+                        if now - last_heartbeat >= 10.0:
+                            done_cells = int(cell_pbar.n)
+                            rem_cells = int(total_cells - done_cells)
+                            if last_done_cell is None:
+                                last_done_text = "none"
+                            else:
+                                last_done_text = (
+                                    f"p_sub={last_done_cell[0]:.4f} p_indel={last_done_cell[1]:.4f}"
+                                )
+                            cell_pbar.write(
+                                f"[heartbeat] scheme={scheme} done_cells={done_cells} "
+                                f"rem_cells={rem_cells} active_futures={len(pending)} "
+                                f"last_done={last_done_text}"
+                            )
+                            last_heartbeat = now
+                        continue
+                    for future in done:
+                        p_sub, p_indel = future_to_cell[future]
+                        cell_key = f"{scheme}_psub_{p_sub:.6f}_pindel_{p_indel:.6f}"
+                        cell_trial_rows, cell_seed_rows = future.result()
+                        trial_rows.extend(cell_trial_rows)
+                        seed_rows.extend(cell_seed_rows)
+                        _save_df(
+                            pd.DataFrame(cell_trial_rows),
+                            raw_dir / cell_key,
+                            run_spec.output.save_raw_parquet,
+                        )
+                        cell_pbar.update(1)
+                        cell_pbar.set_postfix_str(f"{scheme} p_sub={p_sub:.4f} p_indel={p_indel:.4f}")
+                        last_done_cell = (p_sub, p_indel)
+                        last_heartbeat = time.perf_counter()
         else:
             # --- sequential path -------------------------------------------------
             for p_sub, p_indel in cells_to_run:
@@ -338,6 +377,12 @@ def run_grid(run_spec: RunSpec) -> Path:
                 )
                 _save_df(cell_df, raw_dir / cell_key, run_spec.output.save_raw_parquet)
                 cell_pbar.update(1)
+        saved_cells = _count_scheme_cell_files(raw_dir, scheme)
+        if saved_cells != expected_scheme_cells:
+            cell_pbar.write(
+                f"[warning] scheme={scheme} raw_cell_files={saved_cells} "
+                f"expected={expected_scheme_cells}. Existing raw files may be incomplete or collided."
+            )
     cell_pbar.close()
 
     if trial_rows:

@@ -8,19 +8,24 @@
   - interfaces/config: `codec_base.py`, `chunk_format.py`, `config.py`, `cli.py`
 - Tests are in `dna_storage_sim/tests/` and mirror major behaviors (roundtrip, channel stats, constraints).
 - Output artifacts are written to `dna_storage_sim/results/<run_id>/` (raw, agg, figs, config).
-- Planning docs at repo root include `preliminary_plan.md` and `plan.md`.
+- Reports are written to `dna_storage_sim/reports/`.
+- Root docs include `preliminary_plan.md`, `plan.md`, and this guide.
 
 ## Build, Test, and Development Commands
 - Create/use env:
   - `conda create -y -n Bi1C python=3.10`
   - `conda run -n Bi1C python -m pip install -e dna_storage_sim`
+- For interactive progress bars, prefer activated shell:
+  - `conda activate Bi1C`
+  - `cd "D:\GitHub Repositories\DNAStorageCoding\dna_storage_sim"`
 - Run tests:
-  - `conda run -n Bi1C python -m pytest -q dna_storage_sim/tests`
+  - `python -m pytest -q`
 - Run simulation grid:
-  - `conda run -n Bi1C python -m dna_storage_sim.cli run-grid --config dna_storage_sim/smoke_config.json`
+  - `python -m dna_storage_sim.cli run-grid --config config_10kb_realistic_high_redundancy_wide_grid.json`
 - Generate plots/report:
-  - `conda run -n Bi1C python -m dna_storage_sim.cli plot --in dna_storage_sim/results/latest --out dna_storage_sim/results/latest/figs`
-  - `conda run -n Bi1C python -m dna_storage_sim.cli report --in dna_storage_sim/results/latest --out dna_storage_sim/reports/final_report.md`
+  - `python -m dna_storage_sim.cli plot --in results/<run_id> --out results/<run_id>/figs`
+  - `python -m dna_storage_sim.cli report --in results/<run_id> --out reports/final_report_<run_id>.md`
+  - `python -m dna_storage_sim.cli validate-repro --in results/<run_id>`
 
 ## Coding Style & Naming Conventions
 - Python 3.10+, 4-space indentation, UTF-8, and type hints on public functions.
@@ -38,8 +43,8 @@
 - For new features, add at least one success-path and one failure-path test.
 
 ## Commit & Pull Request Guidelines
-- Repository currently has no commit history; use this convention going forward:
-  - `feat: ...`, `fix: ...`, `test: ...`, `docs: ...`, `refactor: ...`.
+- Use conventional-style messages:
+  - `feat: ...`, `fix: ...`, `test: ...`, `docs: ...`, `refactor: ...`, `chore: ...`.
 - Keep commits atomic (one logical change per commit).
 - PRs should include:
   - concise summary,
@@ -50,5 +55,7 @@
 
 ## Reproducibility & Configuration Tips
 - Always persist run configs and seeds (`results/<run_id>/config/`).
-- Avoid hardcoding local paths; use CLI args/config JSON.
-- Use small smoke configs for validation before large-grid runs.
+- Always use a new `run_id` when changing code/config; runner skips existing cell files.
+- Keep baseline channel rates at zero when you want grid-only noise sweeps.
+- Prefer `chunk_data_bytes=128` for stronger robustness at small-file evaluations.
+- Use small smoke configs first, then wide-grid configs for final figures.

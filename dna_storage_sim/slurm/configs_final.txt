@@ -1,0 +1,6 @@
+# One config JSON path per line, relative to dna_storage_sim/
+# Edit this file for your Slurm array batch.
+FINAL_R_A_10kb_c128_t20.json
+FINAL_R_A_100kb_c128_t20.json
+FINAL_R_A_500kb_c128_t20.json
+FINAL_R_A_5mb_c128_t20.json

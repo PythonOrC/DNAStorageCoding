@@ -1,0 +1,27 @@
+# Python cache and test artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local temp/work directories
+.tmp/
+.tmp_tests/
+dna_storage_sim/.tmp/
+
+# Simulation outputs (generated)
+results/
+dna_storage_sim/results/
+dna_storage_sim/reports/
+
+# Slurm/log outputs (generated)
+logs/
+dna_storage_sim/logs/
+slurm-*.out
+slurm-*.err
+
+# Jupyter and editor noise
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db

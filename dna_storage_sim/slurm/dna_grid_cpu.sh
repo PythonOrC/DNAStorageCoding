@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x_%A_%a.txt
 #SBATCH --error=logs/%x_%A_%a.txt
 #SBATCH --time=7-00:00:00
-#SBATCH --partition=compute
+#SBATCH --partition=expansion
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32

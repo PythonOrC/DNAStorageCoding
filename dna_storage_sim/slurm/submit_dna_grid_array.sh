@@ -10,7 +10,7 @@ set -euo pipefail
 # Required:
 #   CONFIGS_FILE path containing one config path per line (relative to dna_storage_sim root)
 # Optional:
-#   PARTITION=compute
+#   PARTITION=expansion
 #   TIME_LIMIT=7-00:00:00
 #   CPUS=32
 #   MEM=192G
@@ -33,7 +33,7 @@ if [ "$N_CONFIGS" -le 0 ]; then
 fi
 ARRAY_MAX=$((N_CONFIGS - 1))
 
-PARTITION="${PARTITION:-compute}"
+PARTITION="${PARTITION:-expansion}"
 TIME_LIMIT="${TIME_LIMIT:-7-00:00:00}"
 CPUS="${CPUS:-32}"
 MEM="${MEM:-192G}"

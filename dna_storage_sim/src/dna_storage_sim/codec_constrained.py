@@ -62,17 +62,22 @@ class ConstrainedCodec(Codec):
             out.append(n)
         return bytes(out)
 
-    def encode_bytes_constrained(self, payload: bytes) -> str:
+    def encode_bytes_constrained(self, payload: bytes, gc_reset_positions: set[int] | None = None) -> str:
         trits = self._bytes_to_trits_fixed(payload)
         prev = "A"
         gc_count = 0
+        local_pos = 0
         dna_out: list[str] = []
         for i, t in enumerate(trits):
-            order = choose_order(prev, gc_count, i, self.gc_target)
+            if gc_reset_positions and i in gc_reset_positions:
+                gc_count = 0
+                local_pos = 0
+            order = choose_order(prev, gc_count, local_pos, self.gc_target)
             base = order[t]
             dna_out.append(base)
             if base in ("G", "C"):
                 gc_count += 1
+            local_pos += 1
             prev = base
         return "".join(dna_out)
 
@@ -96,6 +101,67 @@ class ConstrainedCodec(Codec):
                 gc_count += 1
             prev = base
         return self._trits_to_bytes_fixed(trits)
+
+    def decode_segments_resilient(
+        self, segments: list[str], expected_bytes: int, uncertain_segments: list[int] | None = None,
+    ) -> tuple[bytes, list[int]]:
+        """Decode DNA segments with gc_count reset at each segment boundary.
+
+        Returns (decoded_bytes, erasure_byte_indices).  Handles invalid
+        constrained symbols (e.g. base==prev after substitution) gracefully
+        by marking them as erasures instead of raising.
+        """
+        uncertain_set = set(uncertain_segments) if uncertain_segments else set()
+        needed = expected_bytes * 6
+        trits: list[int] = []
+        erasure_trit_positions: set[int] = set()
+        prev = "A"
+        global_idx = 0
+
+        for seg_idx, seg in enumerate(segments):
+            gc_count = 0
+            is_uncertain = seg_idx in uncertain_set
+            for local_pos, base in enumerate(seg):
+                if global_idx >= needed:
+                    break
+                order = choose_order(prev, gc_count, local_pos, self.gc_target)
+                if base in order:
+                    trit = order.index(base)
+                else:
+                    trit = 0
+                    erasure_trit_positions.add(global_idx)
+                if is_uncertain:
+                    erasure_trit_positions.add(global_idx)
+                trits.append(trit)
+                if base in ("G", "C"):
+                    gc_count += 1
+                prev = base
+                global_idx += 1
+
+        while len(trits) < needed:
+            erasure_trit_positions.add(len(trits))
+            trits.append(0)
+
+        erasure_byte_positions: set[int] = set()
+        for tp in erasure_trit_positions:
+            erasure_byte_positions.add(tp // 6)
+
+        out = bytearray()
+        for i in range(0, needed, 6):
+            n = 0
+            for t in trits[i : i + 6]:
+                n = n * 3 + t
+            if n > 255:
+                out.append(0)
+                erasure_byte_positions.add(i // 6)
+            else:
+                out.append(n)
+
+        while len(out) < expected_bytes:
+            erasure_byte_positions.add(len(out))
+            out.append(0)
+
+        return bytes(out[:expected_bytes]), sorted(erasure_byte_positions)
 
     def encode_file(self, data: bytes) -> list[EncodedStrand]:
         total_chunks = (len(data) + self.chunk_data_bytes - 1) // self.chunk_data_bytes

@@ -105,7 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--config", type=str, default=None)
     run.add_argument("--scheme", type=str, default="all")
     run.add_argument("--dataset", type=str, default=None, choices=["text", "random"])
-    run.add_argument("--size-mb", type=int, default=None)
+    run.add_argument("--size-mb", type=float, default=None)
     run.add_argument("--trials", type=int, default=None)
     run.add_argument("--out", type=str, default=None)
     run.add_argument("--run-id", type=str, default=None)

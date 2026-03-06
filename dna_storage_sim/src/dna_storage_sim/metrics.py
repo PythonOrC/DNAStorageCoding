@@ -54,6 +54,26 @@ def _byte_accuracy(original: bytes, recovered: bytes) -> float:
     return correct / len(original)
 
 
+def _byte_accuracy_by_chunks(original: bytes, decode: DecodeResult, chunk_data_bytes: int, expected_chunks: int) -> float:
+    if not original:
+        return 1.0
+    total_correct = 0
+    for chunk_id in range(expected_chunks):
+        start = chunk_id * chunk_data_bytes
+        if start >= len(original):
+            break
+        end = min(len(original), start + chunk_data_bytes)
+        original_chunk = original[start:end]
+        decoded_chunk = decode.chunks.get(chunk_id)
+        if decoded_chunk is None:
+            continue
+        recovered_chunk = decoded_chunk.data[: len(original_chunk)]
+        for i in range(min(len(original_chunk), len(recovered_chunk))):
+            if original_chunk[i] == recovered_chunk[i]:
+                total_correct += 1
+    return total_correct / len(original)
+
+
 def compute_trial_metrics(
     scheme: str,
     dataset: str,
@@ -66,6 +86,7 @@ def compute_trial_metrics(
     decode: DecodeResult,
     total_bases: int,
     expected_chunks: int,
+    chunk_data_bytes: int,
 ) -> TrialMetrics:
     recovered = reassemble_bytes(decode)
     success = int(sha256_hex(original) == sha256_hex(recovered))
@@ -85,7 +106,9 @@ def compute_trial_metrics(
         p_del=p_del,
         replication=replication,
         success=success,
-        byte_accuracy=_byte_accuracy(original, recovered),
+        byte_accuracy=_byte_accuracy_by_chunks(
+            original=original, decode=decode, chunk_data_bytes=chunk_data_bytes, expected_chunks=expected_chunks
+        ),
         chunk_recovery=chunk_recovery,
         recovered_bytes=len(recovered),
         expected_chunks=expected_chunks,

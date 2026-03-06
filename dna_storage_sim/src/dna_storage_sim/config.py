@@ -50,10 +50,12 @@ class GridSpec:
 class ExperimentConfig:
     schemes: tuple[str, ...] = ("s1", "s2", "s3")
     dataset: str = "random"
-    size_mb: int = 1
+    size_mb: float = 1.0
     trials_per_cell: int = 200
     base_seed: int = 12345
     two_stage_channel: bool = True
+    # <= 0 means auto; otherwise explicit worker count.
+    n_workers: int = 0
 
 
 @dataclass(frozen=True)
@@ -76,7 +78,9 @@ class RunSpec:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RunSpec":
-        exp = ExperimentConfig(**data["experiment"])
+        exp_data = {k: v for k, v in data["experiment"].items()
+                    if k in ExperimentConfig.__dataclass_fields__}
+        exp = ExperimentConfig(**exp_data)
         scheme = SchemeParams(**data["scheme_params"])
         grid = GridSpec(
             p_sub_list=tuple(data["grid"]["p_sub_list"]),

@@ -2,6 +2,8 @@
 #SBATCH --job-name=dna_grid
 #SBATCH --output=logs/%x_%A_%a.txt
 #SBATCH --error=logs/%x_%A_%a.txt
+#SBATCH --mail-user=hhu2@caltech.edu
+#SBATCH --mail-type=ALL
 #SBATCH --time=7-00:00:00
 #SBATCH --partition=expansion
 #SBATCH --nodes=1

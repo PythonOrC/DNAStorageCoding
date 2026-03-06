@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 #SBATCH --job-name=dna_grid
 #SBATCH --output=logs/%x_%A_%a.txt
 #SBATCH --error=logs/%x_%A_%a.txt
